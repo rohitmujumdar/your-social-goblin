@@ -145,6 +145,31 @@ def _severity_for(pattern, age_days, model_severity):
 
 
 # --------------------------------------------------------------------------
+# 1b) NORMALIZE: any pasted chat -> our {contact, messages, profile} shape
+# --------------------------------------------------------------------------
+NORMALIZE_SYS = """You normalize a raw chat log (any format: WhatsApp, iMessage, copy-paste)
+into JSON. Identify the OTHER person (the contact) and the user. Map each line's sender to
+either "user" (the person whose chat this is) or the contact's name. Estimate each message's
+age in days ("day": how many days ago) from any dates/context; if unknown, space them sensibly.
+Also infer a short relationship profile.
+Return ONLY JSON:
+{"contact":"<name>","relationship_type":"<friend|colleague|family|weak tie|...>",
+ "messages":[{"sender":"user|<contact>","day":<int>,"text":"<text>"}],
+ "profile":{"tone":"<how they like to be messaged>","repair_strategy":"<what fixes things with them>"}}"""
+
+
+def normalize_chat(raw_text, you_name="me"):
+    """Turn arbitrary pasted chat text into our normalized conversation. None on failure."""
+    data = _ask_json(NORMALIZE_SYS, f"The user is '{you_name}'. Chat log:\n{raw_text}", max_tokens=1500)
+    if not isinstance(data, dict) or not data.get("contact") or not isinstance(data.get("messages"), list):
+        return None
+    data.setdefault("relationship_type", "contact")
+    data.setdefault("profile", {"tone": "concise and honest",
+                                "repair_strategy": "a short honest message"})
+    return data
+
+
+# --------------------------------------------------------------------------
 # 2) SUGGESTION: recalled memory -> personalized repair (the context-aware step)
 # --------------------------------------------------------------------------
 SUGGEST_SYS = """You are a relationship repair coach. Given a detected pattern and the

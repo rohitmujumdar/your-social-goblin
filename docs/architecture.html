@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Your Social Goblin — Backend Architecture</title>
+<style>
+  :root{
+    --bg:#0c0a12; --panel:#16121f; --panel2:#1e1830; --ink:#ece8f5; --muted:#9b95b2;
+    --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
+    --gold:#f1c453; --purple:#a78bfa; --yellow:#fbbf24; --red:#f87171; --blue:#60a5fa;
+    --green:#34d399; --teal:#2dd4bf;
+    --radius:14px; --maxw:1040px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:radial-gradient(1200px 700px at 80% -10%,#1b1430 0%,transparent 60%),
+               radial-gradient(900px 600px at -10% 20%,#161033 0%,transparent 55%),var(--bg);
+    color:var(--ink); font-family:var(--sans); line-height:1.6;
+    -webkit-font-smoothing:antialiased; padding:48px 22px 90px;
+  }
+  .wrap{max-width:var(--maxw); margin:0 auto}
+  h1{font-size:34px; font-weight:600; margin:0 0 6px; letter-spacing:-.02em}
+  h1 .em{font-size:30px; vertical-align:-2px}
+  .sub{color:var(--muted); font-size:17px; margin:0 0 8px}
+  h2{font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+     color:var(--muted); margin:54px 0 18px; display:flex; align-items:center; gap:10px}
+  h2::after{content:""; flex:1; height:1px; background:var(--line)}
+  .lead{color:#c9c3dc; font-size:16px; max-width:760px; margin:0 0 4px}
+  code{font-family:var(--mono); font-size:.86em; background:rgba(255,255,255,.06);
+       padding:2px 6px; border-radius:6px; color:#d8d2ea}
+
+  /* pipeline */
+  .pipe{display:flex; gap:10px; flex-wrap:wrap; align-items:stretch}
+  .step{flex:1 1 0; min-width:150px; background:var(--panel); border:1px solid var(--line);
+        border-radius:var(--radius); padding:16px 16px 14px; position:relative}
+  .step .n{font-family:var(--mono); font-size:12px; color:var(--gold); font-weight:600}
+  .step .t{font-size:17px; font-weight:600; margin:4px 0 2px}
+  .step .d{font-size:13.5px; color:var(--muted)}
+  .step .who{font-family:var(--mono); font-size:11.5px; color:#bdb6d6; margin-top:9px;
+             border-top:1px solid var(--line); padding-top:8px}
+  .step::after{content:"→"; position:absolute; right:-13px; top:50%; transform:translateY(-50%);
+               color:var(--gold); font-size:18px; z-index:2}
+  .step:last-child::after{display:none}
+
+  /* layer stack */
+  .layers{display:flex; flex-direction:column; gap:0}
+  .layer{display:grid; grid-template-columns:200px 1fr; gap:18px; align-items:center;
+         background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+         padding:16px 18px; position:relative; border-left:4px solid var(--ac,var(--line2))}
+  .layer + .layer{margin-top:30px}
+  .layer + .layer::before{content:""; position:absolute; left:38px; top:-26px; height:22px;
+         width:2px; background:linear-gradient(var(--line2),var(--gold)); }
+  .layer .lname{font-size:17px; font-weight:600}
+  .layer .tag{display:inline-block; font-family:var(--mono); font-size:11.5px; color:#cfc8e6;
+              background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:6px;
+              padding:2px 7px; margin-top:7px}
+  .layer .role{color:var(--muted); font-size:14.5px}
+  .layer .role b{color:#ddd7ef; font-weight:600}
+
+  /* two-path read/write */
+  .paths{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .path{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px}
+  .path h3{margin:0 0 12px; font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px}
+  .dot{width:9px; height:9px; border-radius:50%}
+  .chain{display:flex; flex-direction:column; gap:8px}
+  .node{font-size:14px; color:#d6d0ea; background:var(--panel2); border:1px solid var(--line);
+        border-radius:10px; padding:9px 12px; position:relative}
+  .node b{font-weight:600; color:#fff}
+  .node small{display:block; color:var(--muted); font-size:12px; margin-top:2px}
+  .node + .node::before{content:"↓"; position:absolute; left:18px; top:-15px; color:var(--gold); font-size:13px}
+  .node.mem{border-color:rgba(241,196,83,.5); background:rgba(241,196,83,.08)}
+
+  /* story grid */
+  .story{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+  .sc{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px}
+  .sc .h{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+  .sc .sn{font-size:14.5px; font-weight:600}
+  .sc .job{font-family:var(--mono); font-size:11px; padding:2px 8px; border-radius:20px;
+           border:1px solid var(--line); color:#cfc8e6; white-space:nowrap}
+  .sc .x{color:var(--muted); font-size:13.5px; margin-top:6px}
+  .job.write{color:#ffd98a; border-color:rgba(241,196,83,.45); background:rgba(241,196,83,.08)}
+  .job.read{color:#8ee9d4; border-color:rgba(45,212,191,.4); background:rgba(45,212,191,.08)}
+
+  /* sources callout */
+  .sources{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px}
+  .funnel{display:grid; grid-template-columns:1fr 60px 1fr; gap:14px; align-items:center}
+  .chips{display:flex; flex-direction:column; gap:8px}
+  .chip{font-size:13.5px; padding:9px 12px; border-radius:10px; border:1px dashed var(--line2);
+        color:#cfc8e6; background:var(--panel2)}
+  .chip.live{border-style:solid; border-color:rgba(52,211,153,.5); background:rgba(52,211,153,.08); color:#bff3df}
+  .chip .b{font-weight:600; color:#fff}
+  .arrowto{font-size:24px; color:var(--gold); text-align:center}
+  .norm{background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.45); border-radius:12px;
+        padding:14px; text-align:center}
+  .norm .b{font-weight:600}
+  .norm code{background:rgba(255,255,255,.08)}
+
+  /* legend */
+  .legend{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+  .coin{display:flex; align-items:center; gap:8px; font-size:13px; color:#cfc8e6;
+        background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:6px 12px 6px 8px}
+  .coin .c{width:14px; height:14px; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+
+  .foot{margin-top:50px; color:var(--muted); font-size:13px; border-top:1px solid var(--line); padding-top:16px}
+  @media(max-width:720px){
+    .paths,.story,.funnel{grid-template-columns:1fr}
+    .arrowto{transform:rotate(90deg)}
+    .layer{grid-template-columns:1fr}
+    .step::after{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Your Social Goblin <span class="em">🪙👹</span></h1>
+  <p class="sub">Backend architecture — how conversations become memory, and memory becomes the game.</p>
+
+  <!-- ============ PIPELINE ============ -->
+  <h2>The whole backend is 5 jobs</h2>
+  <p class="lead">Every feature is one of these five steps. Three touch the AI or the database; the rest is plumbing and math.</p>
+  <div class="pipe">
+    <div class="step"><div class="n">01</div><div class="t">Ingest</div><div class="d">Read a conversation</div><div class="who">main.py · seed.py</div></div>
+    <div class="step"><div class="n">02</div><div class="t">Detect</div><div class="d">Find the dark pattern</div><div class="who">agent.py → Nebius LLM</div></div>
+    <div class="step"><div class="n">03</div><div class="t">Store</div><div class="d">Write it as a memory</div><div class="who">hydra.py → HydraDB</div></div>
+    <div class="step"><div class="n">04</div><div class="t">Derive</div><div class="d">Read memory, draw world</div><div class="who">hydra.py + patterns.py</div></div>
+    <div class="step"><div class="n">05</div><div class="t">Repair</div><div class="d">Write a "fixed it" memory</div><div class="who">hydra.py → HydraDB</div></div>
+  </div>
+
+  <!-- ============ LAYERS ============ -->
+  <h2>The layers, top to bottom</h2>
+  <p class="lead">A small office. Only the <b style="color:#ddd7ef">brain</b> talks to the AI, and only the <b style="color:#ddd7ef">clerk</b> talks to HydraDB. Clean doors.</p>
+  <div class="layers">
+
+    <div class="layer" style="--ac:#94a3b8">
+      <div><div class="lname">Sources &amp; adapters</div><span class="tag">seed.py · (future parsers)</span></div>
+      <div class="role"><b>The front-ends.</b> Turn any chat (seeded today; WhatsApp / iMessage / paste tomorrow) into one normalized shape: <code>{sender, day, text}</code>.</div>
+    </div>
+
+    <div class="layer" style="--ac:var(--blue)">
+      <div><div class="lname">Front desk · API</div><span class="tag">main.py (FastAPI)</span></div>
+      <div class="role"><b>The counter.</b> The endpoints the frontend calls: <code>/ingest</code> <code>/dashboard</code> <code>/coin</code> <code>/repair</code> <code>/trace</code>.</div>
+    </div>
+
+    <div class="layer" style="--ac:var(--teal)">
+      <div><div class="lname">The brain</div><span class="tag">agent.py → Nebius LLM</span></div>
+      <div class="role"><b>Interprets language.</b> Finds the dark pattern in a chat, and writes the personalized repair message. Falls back to a safe answer key if the model misbehaves.</div>
+    </div>
+
+    <div class="layer" style="--ac:var(--purple)">
+      <div><div class="lname">The memory clerk</div><span class="tag">hydra.py</span></div>
+      <div class="role"><b>The only door to HydraDB.</b> Writes notes, reads notes, and logs every single read/write to the trace panel.</div>
+    </div>
+
+    <div class="layer" style="--ac:var(--gold)">
+      <div><div class="lname">HydraDB — the notebook</div><span class="tag">memories: coins · profiles · repairs</span></div>
+      <div class="role"><b>The memory of record.</b> Everything that persists lives here. Survives restarts — this is what makes it remember across sessions.</div>
+    </div>
+
+    <div class="layer" style="--ac:var(--green)">
+      <div><div class="lname">The scorekeeper</div><span class="tag">patterns.py</span></div>
+      <div class="role"><b>Pure math, no AI.</b> Turns "how many open coins" into a health % and a Goblin size. Deterministic, so the demo is fast and repeatable.</div>
+    </div>
+
+  </div>
+
+  <!-- ============ WRITE / READ PATHS ============ -->
+  <h2>Two paths through the stack</h2>
+  <p class="lead">Writing a memory and reading it back are the only two things that ever happen. Everything in the game is one of these.</p>
+  <div class="paths">
+    <div class="path">
+      <h3><span class="dot" style="background:var(--gold)"></span> Write path — making a memory</h3>
+      <div class="chain">
+        <div class="node"><b>Conversation</b><small>Marc: "still up for coffee?" · you: (silence, 17 days)</small></div>
+        <div class="node"><b>Adapter → API</b><small>normalize to {sender, day, text}</small></div>
+        <div class="node"><b>Brain detects</b><small>"ghosting, 17 days, high severity"</small></div>
+        <div class="node mem"><b>Clerk writes to HydraDB</b><small>memory <code>marc::ghosting</code> · trace: WRITE</small></div>
+      </div>
+    </div>
+    <div class="path">
+      <h3><span class="dot" style="background:var(--teal)"></span> Read path — drawing the world</h3>
+      <div class="chain">
+        <div class="node mem"><b>Clerk recalls from HydraDB</b><small>"all the user's notes" · trace: QUERY</small></div>
+        <div class="node"><b>Scorekeeper derives</b><small>Marc 66 → "neglected" · Goblin = 3 coins</small></div>
+        <div class="node"><b>Brain (on click)</b><small>recall Marc's profile → personalized fix</small></div>
+        <div class="node"><b>API → dashboard</b><small>the world, rebuilt from memory every load</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STORY ============ -->
+  <h2>How it maps to the story you saw</h2>
+  <div class="story">
+    <div class="sc"><div class="h"><span class="sn">1 · Open the app</span><span class="job write">ingest · detect · store</span></div><div class="x">Reads 4 chats, drops Marc / Sarah / Tom coins, Nina stays healthy.</div></div>
+    <div class="sc"><div class="h"><span class="sn">2 · Open the bag</span><span class="job read">derive</span></div><div class="x">The bag list is a live recall of unresolved memories.</div></div>
+    <div class="sc"><div class="h"><span class="sn">3 · Click a coin</span><span class="job read">recall + brain</span></div><div class="x">Pulls Marc's profile, writes a fix in <i>his</i> tone.</div></div>
+    <div class="sc"><div class="h"><span class="sn">4 · Fix it</span><span class="job write">repair</span></div><div class="x">Writes a resolution memory; Goblin shrinks, Marc heals.</div></div>
+    <div class="sc"><div class="h"><span class="sn">5 · Reopen later</span><span class="job read">derive</span></div><div class="x">Blank app rebuilds from HydraDB. Marc stays fixed. The proof.</div></div>
+    <div class="sc"><div class="h"><span class="sn">6 · Prediction</span><span class="job read">derive</span></div><div class="x">Warns Sarah's promise is about to break again.</div></div>
+    <div class="sc"><div class="h"><span class="sn">7 · Trace panel</span><span class="job read">all of it</span></div><div class="x">Every WRITE / QUERY line is a real HydraDB call.</div></div>
+    <div class="sc"><div class="h"><span class="sn">Legend</span><span class="job">coins</span></div>
+      <div class="legend">
+        <span class="coin"><span class="c" style="background:var(--purple)"></span>ghosting</span>
+        <span class="coin"><span class="c" style="background:var(--yellow)"></span>broken promise</span>
+        <span class="coin"><span class="c" style="background:var(--red)"></span>bad excuse</span>
+        <span class="coin"><span class="c" style="background:var(--blue)"></span>transactional</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SOURCES ============ -->
+  <h2>Going further — ingesting real sources</h2>
+  <p class="lead">Adapters are interchangeable front-ends. Add a parser per source; the brain and memory underneath never change.</p>
+  <div class="sources">
+    <div class="funnel">
+      <div class="chips">
+        <div class="chip live"><span class="b">Seed chats</span> — live today</div>
+        <div class="chip"><span class="b">WhatsApp</span> — "export chat" .txt parser</div>
+        <div class="chip"><span class="b">iMessage / Slack</span> — one parser each</div>
+        <div class="chip"><span class="b">Paste any chat</span> — LLM normalizes it</div>
+      </div>
+      <div class="arrowto">⟶</div>
+      <div class="norm">
+        <div class="b">Normalized shape</div>
+        <code>{ contact, messages:[{sender, day, text}] }</code>
+        <div style="color:var(--muted); font-size:13px; margin-top:8px">…then the same detect → store → derive pipeline runs, untouched.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Your Social Goblin · "Agents you Love" hackathon · HydraDB memory + Nebius agent.
+  The backend produces health, coins, suggestions, predictions, and the memory that survives restarts; the frontend animates on top of that data.</p>
+
+</div>
+</body>
+</html>

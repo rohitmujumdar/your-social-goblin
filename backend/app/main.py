@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from . import config, agent
+from . import config, agent, adapters
 from .hydra import db, TRACE, MIRROR, PROFILES
 from .patterns import tamagotchi_state, goblin_stage, decorate_coin
 from .seed import SEED, contact_names
@@ -51,34 +51,71 @@ def health():
 
 
 # ---------------------------------------------------------------- ingest
+def _store_conversation(contact, relationship_type, profile, messages, answer_key):
+    """Shared pipeline: write the relationship profile, detect coins, write coins.
+    Used by both /ingest (seed) and /ingest_raw (real chats)."""
+    ptext = (f"{contact}: {relationship_type}. Prefers {profile.get('tone','')}. "
+             f"Repairs best with {profile.get('repair_strategy','')}. {profile.get('note','')}")
+    db.write_memory(ptext, f"{_cid(contact)}::profile",
+                    {"kind": "profile", "contact": contact,
+                     "tone": profile.get("tone", ""),
+                     "repair_strategy": profile.get("repair_strategy", "")})
+
+    created = []
+    coins = agent.extract_patterns(contact, messages, answer_key)
+    for c in coins:
+        sid = f"{_cid(contact)}::{c['pattern']}"
+        meta = decorate_coin({
+            "kind": "coin", "contact": contact, "pattern": c["pattern"],
+            "severity": c.get("severity", "medium"), "age_days": c.get("age_days", 0),
+            "status": "open", "summary": c.get("summary", ""),
+            "evidence": c.get("evidence", []),
+        })
+        db.write_memory(c.get("summary", ""), sid, meta)
+        created.append(sid)
+    return created
+
+
 @app.post("/ingest")
 def ingest():
-    """Session 1: the agent reads each conversation, extracts coins, and writes
-    them + the relationship profile into HydraDB."""
+    """Session 1: the agent reads each SEEDED conversation, extracts coins, and
+    writes them + the relationship profile into HydraDB."""
     created = []
     for contact, data in SEED.items():
-        # profile memory (relationship_memory) -> powers personalized repair later
-        p = data["profile"]
-        ptext = (f"{contact}: {data['relationship_type']}. Prefers {p['tone']}. "
-                 f"Repairs best with {p['repair_strategy']}. {p['note']}")
-        db.write_memory(ptext, f"{_cid(contact)}::profile",
-                        {"kind": "profile", "contact": contact,
-                         "tone": p["tone"], "repair_strategy": p["repair_strategy"]})
-
-        # extract coins (Claude, with seed answer_key fallback)
-        coins = agent.extract_patterns(contact, data["messages"], data["answer_key"])
-        for c in coins:
-            sid = f"{_cid(contact)}::{c['pattern']}"
-            meta = decorate_coin({
-                "kind": "coin", "contact": contact, "pattern": c["pattern"],
-                "severity": c.get("severity", "medium"), "age_days": c.get("age_days", 0),
-                "status": "open", "summary": c.get("summary", ""),
-                "evidence": c.get("evidence", []),
-            })
-            db.write_memory(c.get("summary", ""), sid, meta)
-            created.append(sid)
-
+        created += _store_conversation(contact, data["relationship_type"],
+                                       data["profile"], data["messages"], data["answer_key"])
     return {"mode": db.mode, "claude": agent.claude_on(),
+            "coins_created": created, "count": len(created)}
+
+
+class IngestRawIn(BaseModel):
+    text: str
+    your_name: str = "me"      # which sender label is you
+    source: str = "auto"       # "auto" (LLM normalizes) | "whatsapp" (fast parser)
+
+
+@app.post("/ingest_raw")
+def ingest_raw(body: IngestRawIn):
+    """Ingest a REAL chat (WhatsApp export or any pasted log). Normalizes it to the
+    same shape as the seed, then runs the identical detect -> store pipeline."""
+    contact = messages = profile = None
+    rel = "contact"
+
+    if body.source == "whatsapp":
+        parsed = adapters.parse_whatsapp(body.text, you_names=(body.your_name, "me", "you"))
+        if parsed:
+            contact, messages = parsed
+            profile = {"tone": "concise and honest", "repair_strategy": "a short honest message"}
+
+    if messages is None:  # auto path, or WhatsApp parse didn't match -> LLM normalize
+        norm = agent.normalize_chat(body.text, body.your_name)
+        if not norm:
+            raise HTTPException(422, "couldn't parse this chat (free-form paste needs an LLM key)")
+        contact, messages = norm["contact"], norm["messages"]
+        profile, rel = norm["profile"], norm["relationship_type"]
+
+    created = _store_conversation(contact, rel, profile, messages, answer_key=[])
+    return {"mode": db.mode, "contact": contact, "messages_parsed": len(messages),
             "coins_created": created, "count": len(created)}
 
 

@@ -11,6 +11,10 @@ Built for the **"Agents you Love" hackathon** (theme: *Context over Amnesia*).
 The LLM provider is pluggable and defaults to **Nebius Token Factory** (free
 credits, OpenAI-compatible); Anthropic Claude is the drop-in alternative.
 
+📄 **More docs:** [`docs/architecture.html`](docs/architecture.html) (visual backend
+walkthrough — open in a browser) · [`docs/story.md`](docs/story.md) (scene-by-scene
+story + image prompts for slides).
+
 ## The pitch in one line
 
 > The Goblin feeds on the parts of your relationships you refuse to repair.
@@ -199,11 +203,21 @@ Check status anytime: `GET /` → `{"mode": "hydradb"|"offline", "llm": "nebius:
 
 Base URL `http://localhost:8000`. CORS is open.
 
-### `POST /ingest` — Session 1: agent reads convos, writes memory
+### `POST /ingest` — Session 1: agent reads the SEEDED convos, writes memory
 ```json
 { "mode": "hydradb", "claude": true,
   "coins_created": ["marc::ghosting","sarah::broken_promise","tom::transactional"],
   "count": 3 }
+```
+
+### `POST /ingest_raw` — ingest a REAL chat (WhatsApp export or pasted log)
+Body: `{ "text": "<raw chat>", "your_name": "me", "source": "auto" }`
+(`source`: `"whatsapp"` uses a fast deterministic parser; `"auto"` lets the LLM
+normalize any format). It normalizes to the same shape as the seed, then runs the
+identical detect → store pipeline.
+```json
+{ "mode": "hydradb", "contact": "Priya", "messages_parsed": 4,
+  "coins_created": ["priya::broken_promise"], "count": 1 }
 ```
 
 ### `GET /dashboard` — the whole game world, derived from recall
