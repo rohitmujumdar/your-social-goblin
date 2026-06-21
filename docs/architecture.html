@@ -3,290 +3,321 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Your Social Goblin — Backend Architecture</title>
+<title>Your Social Goblin — System Architecture</title>
 <style>
   :root{
-    --bg:#0c0a12; --panel:#16121f; --panel2:#1e1830; --ink:#ece8f5; --muted:#9b95b2;
-    --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
-    --gold:#f1c453; --purple:#a78bfa; --yellow:#fbbf24; --red:#f87171; --blue:#60a5fa;
-    --green:#34d399; --teal:#2dd4bf;
-    --radius:14px; --maxw:1040px;
-    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --bg:#0a0910; --bg2:#0e0c16; --card:#14111d; --card2:#191522;
+    --ink:#f2eefb; --ink2:#b8b2cb; --mut:#7e7895; --faint:#56516a;
+    --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.13);
+    --gold:#e9b949; --gold-soft:rgba(233,185,73,.12);
+    --purple:#a78bfa; --yellow:#fbbf24; --red:#f87171; --blue:#60a5fa;
+    --green:#34d399; --teal:#2dd4bf; --slate:#94a3b8;
+    --mono:"SF Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --sp:8px; --r:16px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0}
+  html{scroll-behavior:smooth}
   body{
-    background:radial-gradient(1200px 700px at 80% -10%,#1b1430 0%,transparent 60%),
-               radial-gradient(900px 600px at -10% 20%,#161033 0%,transparent 55%),var(--bg);
-    color:var(--ink); font-family:var(--sans); line-height:1.6;
-    -webkit-font-smoothing:antialiased; padding:48px 22px 90px;
+    margin:0; background:
+      radial-gradient(900px 520px at 78% -8%,#1a1330 0%,transparent 58%),
+      radial-gradient(760px 520px at -8% 12%,#14102a 0%,transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans); line-height:1.65; letter-spacing:.005em;
+    -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:var(--maxw); margin:0 auto}
-  h1{font-size:34px; font-weight:600; margin:0 0 6px; letter-spacing:-.02em}
-  h1 .em{font-size:30px; vertical-align:-2px}
-  .sub{color:var(--muted); font-size:17px; margin:0 0 8px}
-  h2{font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
-     color:var(--muted); margin:54px 0 18px; display:flex; align-items:center; gap:10px}
-  h2::after{content:""; flex:1; height:1px; background:var(--line)}
-  .lead{color:#c9c3dc; font-size:16px; max-width:760px; margin:0 0 4px}
-  code{font-family:var(--mono); font-size:.86em; background:rgba(255,255,255,.06);
-       padding:2px 6px; border-radius:6px; color:#d8d2ea}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .wrap{max-width:980px; margin:0 auto; padding:64px 28px 100px}
 
-  /* pipeline */
-  .pipe{display:flex; gap:10px; flex-wrap:wrap; align-items:stretch}
-  .step{flex:1 1 0; min-width:150px; background:var(--panel); border:1px solid var(--line);
-        border-radius:var(--radius); padding:16px 16px 14px; position:relative}
-  .step .n{font-family:var(--mono); font-size:12px; color:var(--gold); font-weight:600}
-  .step .t{font-size:17px; font-weight:600; margin:4px 0 2px}
-  .step .d{font-size:13.5px; color:var(--muted)}
-  .step .who{font-family:var(--mono); font-size:11.5px; color:#bdb6d6; margin-top:9px;
-             border-top:1px solid var(--line); padding-top:8px}
-  .step::after{content:"→"; position:absolute; right:-13px; top:50%; transform:translateY(-50%);
-               color:var(--gold); font-size:18px; z-index:2}
-  .step:last-child::after{display:none}
+  /* ---- type system ---- */
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+           color:var(--gold); display:flex; align-items:center; gap:12px; margin:0 0 14px}
+  .eyebrow::before{content:attr(data-n); color:var(--faint); font-weight:500}
+  .eyebrow span{flex:1; height:1px; background:var(--line); margin-left:2px}
+  h1{font-size:42px; line-height:1.05; font-weight:600; letter-spacing:-.025em; margin:0 0 14px}
+  h1 .g{color:var(--gold)}
+  .dek{color:var(--ink2); font-size:18px; max-width:620px; margin:0}
+  section{margin-top:74px}
+  h2{font-size:23px; font-weight:600; letter-spacing:-.015em; margin:0 0 8px}
+  .lede{color:var(--mut); font-size:15.5px; max-width:680px; margin:0 0 26px}
+  .lede b{color:var(--ink2); font-weight:500}
+  code{font-family:var(--mono); font-size:.84em; background:rgba(255,255,255,.05);
+       border:1px solid var(--line); padding:1px 6px; border-radius:6px; color:#d8d2ea}
 
-  /* layer stack */
-  .layers{display:flex; flex-direction:column; gap:0}
-  .layer{display:grid; grid-template-columns:200px 1fr; gap:18px; align-items:center;
-         background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-         padding:16px 18px; position:relative; border-left:4px solid var(--ac,var(--line2))}
-  .layer + .layer{margin-top:30px}
-  .layer + .layer::before{content:""; position:absolute; left:38px; top:-26px; height:22px;
-         width:2px; background:linear-gradient(var(--line2),var(--gold)); }
-  .layer .lname{font-size:17px; font-weight:600}
-  .layer .tag{display:inline-block; font-family:var(--mono); font-size:11.5px; color:#cfc8e6;
-              background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:6px;
-              padding:2px 7px; margin-top:7px}
-  .layer .role{color:var(--muted); font-size:14.5px}
-  .layer .role b{color:#ddd7ef; font-weight:600}
+  /* ---- hero diagram frame ---- */
+  .stage{background:linear-gradient(180deg,var(--card),var(--bg2));
+         border:1px solid var(--line2); border-radius:22px; padding:10px 10px 4px;
+         box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 30px 80px -40px rgba(0,0,0,.8)}
+  svg{display:block; width:100%; height:auto}
+  .nt{font:500 15px var(--sans); fill:var(--ink)}
+  .ns{font:400 11px var(--mono); fill:var(--mut); letter-spacing:.02em}
+  .el{font:500 10.5px var(--mono); letter-spacing:.12em; text-transform:uppercase}
+  .nbox{fill:var(--card2); stroke:var(--line2)}
+  .lane{font:500 10.5px var(--mono); letter-spacing:.2em; text-transform:uppercase; fill:var(--faint)}
 
-  /* two-path read/write */
-  .paths{display:grid; grid-template-columns:1fr 1fr; gap:16px}
-  .path{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px}
-  .path h3{margin:0 0 12px; font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px}
-  .dot{width:9px; height:9px; border-radius:50%}
-  .chain{display:flex; flex-direction:column; gap:8px}
-  .node{font-size:14px; color:#d6d0ea; background:var(--panel2); border:1px solid var(--line);
-        border-radius:10px; padding:9px 12px; position:relative}
-  .node b{font-weight:600; color:#fff}
-  .node small{display:block; color:var(--muted); font-size:12px; margin-top:2px}
-  .node + .node::before{content:"↓"; position:absolute; left:18px; top:-15px; color:var(--gold); font-size:13px}
-  .node.mem{border-color:rgba(241,196,83,.5); background:rgba(241,196,83,.08)}
+  /* ---- memory spotlight ---- */
+  .spot{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .panel{position:relative; background:var(--card); border:1px solid var(--line2);
+         border-radius:var(--r); padding:22px 22px 20px; overflow:hidden}
+  .panel::before{content:""; position:absolute; inset:0 0 auto 0; height:2px;
+                 background:linear-gradient(90deg,var(--gold),transparent 70%)}
+  .tag{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+       color:var(--gold); background:var(--gold-soft); border:1px solid rgba(233,185,73,.32);
+       border-radius:999px; padding:4px 11px; display:inline-block; margin-bottom:14px}
+  .panel h3{font-size:17px; font-weight:600; margin:0 0 8px; letter-spacing:-.01em}
+  .panel p{color:var(--ink2); font-size:14px; margin:0 0 14px}
+  .cmp{display:grid; gap:8px; margin:14px 0 4px}
+  .cmp div{border-radius:12px; padding:11px 13px; font-size:13px; line-height:1.5}
+  .cmp .a{background:rgba(248,113,113,.07); border:1px solid rgba(248,113,113,.25); color:#f0b6b6}
+  .cmp .b{background:rgba(52,211,153,.07); border:1px solid rgba(52,211,153,.3); color:#b6efd9}
+  .cmp .lab{display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em;
+            text-transform:uppercase; opacity:.65; margin-bottom:5px}
+  ul.clean{margin:14px 0 0; padding:0; list-style:none}
+  ul.clean li{position:relative; padding-left:20px; color:var(--mut); font-size:13px; margin:8px 0}
+  ul.clean li::before{content:""; position:absolute; left:2px; top:8px; width:6px; height:6px;
+                      border-radius:50%; background:var(--gold)}
+  .cycle{margin-top:18px; display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+         gap:10px; font-family:var(--mono); font-size:12px; color:var(--mut)}
+  .cycle b{color:var(--gold); font-weight:500}
+  .cycle .arr{color:var(--faint)}
 
-  /* story grid */
-  .story{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
-  .sc{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px}
-  .sc .h{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
-  .sc .sn{font-size:14.5px; font-weight:600}
-  .sc .job{font-family:var(--mono); font-size:11px; padding:2px 8px; border-radius:20px;
-           border:1px solid var(--line); color:#cfc8e6; white-space:nowrap}
-  .sc .x{color:var(--muted); font-size:13.5px; margin-top:6px}
-  .job.write{color:#ffd98a; border-color:rgba(241,196,83,.45); background:rgba(241,196,83,.08)}
-  .job.read{color:#8ee9d4; border-color:rgba(45,212,191,.4); background:rgba(45,212,191,.08)}
+  /* ---- components grid ---- */
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  .comp{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 16px 15px;
+        border-top:2px solid var(--ac,var(--line2)); transition:border-color .15s}
+  .comp .file{font-family:var(--mono); font-size:11px; color:var(--ac,var(--mut))}
+  .comp .nm{font-size:15px; font-weight:600; margin:7px 0 4px}
+  .comp .ds{font-size:13px; color:var(--mut); line-height:1.5}
 
-  /* sources callout */
-  .sources{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px}
-  .funnel{display:grid; grid-template-columns:1fr 60px 1fr; gap:14px; align-items:center}
-  .chips{display:flex; flex-direction:column; gap:8px}
-  .chip{font-size:13.5px; padding:9px 12px; border-radius:10px; border:1px dashed var(--line2);
-        color:#cfc8e6; background:var(--panel2)}
-  .chip.live{border-style:solid; border-color:rgba(52,211,153,.5); background:rgba(52,211,153,.08); color:#bff3df}
-  .chip .b{font-weight:600; color:#fff}
-  .arrowto{font-size:24px; color:var(--gold); text-align:center}
-  .norm{background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.45); border-radius:12px;
-        padding:14px; text-align:center}
-  .norm .b{font-weight:600}
-  .norm code{background:rgba(255,255,255,.08)}
+  /* ---- story rail ---- */
+  .rail{border-left:1px solid var(--line2); margin-left:6px; padding-left:0}
+  .step{position:relative; padding:0 0 20px 30px}
+  .step::before{content:""; position:absolute; left:-5px; top:5px; width:9px; height:9px; border-radius:50%;
+                background:var(--bg); border:2px solid var(--gold)}
+  .step:last-child{padding-bottom:0}
+  .step .top{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .step .sn{font-size:14.5px; font-weight:600}
+  .step .pill{font-family:var(--mono); font-size:10px; letter-spacing:.06em; padding:2px 9px;
+              border-radius:999px; border:1px solid var(--line2); color:var(--mut)}
+  .pill.w{color:#ffd98a; border-color:rgba(233,185,73,.4); background:var(--gold-soft)}
+  .pill.r{color:#8ee9d4; border-color:rgba(45,212,191,.35); background:rgba(45,212,191,.08)}
+  .step .x{color:var(--mut); font-size:13px; margin-top:3px}
 
-  /* legend */
-  .legend{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
-  .coin{display:flex; align-items:center; gap:8px; font-size:13px; color:#cfc8e6;
-        background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:6px 12px 6px 8px}
-  .coin .c{width:14px; height:14px; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+  /* ---- sources ---- */
+  .funnel{display:grid; grid-template-columns:1fr auto 1fr; gap:20px; align-items:center;
+          background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:22px}
+  .src{display:flex; flex-direction:column; gap:9px}
+  .chip{font-size:13px; padding:10px 13px; border-radius:11px; border:1px dashed var(--line2);
+        color:var(--ink2); background:var(--card2)}
+  .chip.on{border-style:solid; border-color:rgba(52,211,153,.45); background:rgba(52,211,153,.07); color:#b6efd9}
+  .chip b{color:var(--ink); font-weight:500}
+  .into{font-size:30px; color:var(--gold); text-align:center; line-height:1}
+  .norm{background:rgba(96,165,250,.06); border:1px solid rgba(96,165,250,.4);
+        border-radius:13px; padding:16px; text-align:center}
+  .norm .b{font-weight:600; margin-bottom:6px}
+  .norm small{color:var(--mut); font-size:12.5px; display:block; margin-top:8px}
 
-  /* memory spotlight */
-  .spot{border:1px solid rgba(241,196,83,.45);
-        background:linear-gradient(180deg,rgba(241,196,83,.08),rgba(241,196,83,.02));
-        border-radius:var(--radius); padding:20px}
-  .crit-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
-  .crit{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px}
-  .crit .badge{display:inline-block; font-size:10.5px; font-family:var(--mono); letter-spacing:.08em;
-       text-transform:uppercase; color:#ffd98a; background:rgba(241,196,83,.1);
-       border:1px solid rgba(241,196,83,.4); border-radius:20px; padding:3px 10px; margin-bottom:10px}
-  .crit h3{margin:0 0 8px; font-size:16px; font-weight:600}
-  .crit p{margin:0 0 10px; font-size:13.5px; color:#c9c3dc}
-  .crit ul{margin:0; padding-left:18px; color:var(--muted); font-size:13px}
-  .crit li{margin:5px 0}
-  .ba{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0}
-  .ba .col{border-radius:10px; padding:10px 12px; font-size:12.5px}
-  .ba .no{background:rgba(248,113,113,.08); border:1px solid rgba(248,113,113,.3); color:#f4b8b8}
-  .ba .yes{background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.35); color:#bff3df}
-  .ba .k{display:block; font-family:var(--mono); font-size:10px; opacity:.7; margin-bottom:3px}
-  .loop{margin-top:16px; color:var(--muted); font-size:13.5px; text-align:center}
-  .loop b{color:var(--gold); font-weight:600}
-  @media(max-width:720px){.crit-grid,.ba{grid-template-columns:1fr}}
-  .foot{margin-top:50px; color:var(--muted); font-size:13px; border-top:1px solid var(--line); padding-top:16px}
-  @media(max-width:720px){
-    .paths,.story,.funnel{grid-template-columns:1fr}
-    .arrowto{transform:rotate(90deg)}
-    .layer{grid-template-columns:1fr}
-    .step::after{display:none}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:20px; color:var(--mut); font-size:12.5px}
+  .legend span{display:flex; align-items:center; gap:7px}
+  .legend i{width:11px; height:11px; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.03)}
+
+  .foot{margin-top:80px; padding-top:20px; border-top:1px solid var(--line);
+        color:var(--faint); font-size:12.5px; font-family:var(--mono)}
+
+  @media(max-width:760px){
+    h1{font-size:32px}.spot,.grid,.funnel{grid-template-columns:1fr}
+    .into{transform:rotate(90deg)}.wrap{padding:44px 18px 70px}
   }
 </style>
 </head>
 <body>
+<h2 class="sr-only">System architecture of Your Social Goblin: conversations are detected as dark-pattern coins, written to HydraDB memory, and recalled across sessions to derive the game and personalize repairs.</h2>
 <div class="wrap">
 
-  <h1>Your Social Goblin <span class="em">🪙👹</span></h1>
-  <p class="sub">Backend architecture — how conversations become memory, and memory becomes the game.</p>
+  <!-- HERO -->
+  <p class="eyebrow" data-n="00">System architecture <span></span></p>
+  <h1>Your Social Goblin<br><span class="g">runs on memory.</span></h1>
+  <p class="dek">Conversations become coins. Coins become memories in HydraDB. The whole game is just memory, written and recalled.</p>
 
-  <!-- ============ PIPELINE ============ -->
-  <h2>The whole backend is 5 jobs</h2>
-  <p class="lead">Every feature is one of these five steps. Three touch the AI or the database; the rest is plumbing and math.</p>
-  <div class="pipe">
-    <div class="step"><div class="n">01</div><div class="t">Ingest</div><div class="d">Read a conversation</div><div class="who">main.py · seed.py</div></div>
-    <div class="step"><div class="n">02</div><div class="t">Detect</div><div class="d">Find the dark pattern</div><div class="who">agent.py → Nebius LLM</div></div>
-    <div class="step"><div class="n">03</div><div class="t">Store</div><div class="d">Write it as a memory</div><div class="who">hydra.py → HydraDB</div></div>
-    <div class="step"><div class="n">04</div><div class="t">Derive</div><div class="d">Read memory, draw world</div><div class="who">hydra.py + patterns.py</div></div>
-    <div class="step"><div class="n">05</div><div class="t">Repair</div><div class="d">Write a "fixed it" memory</div><div class="who">hydra.py → HydraDB</div></div>
-  </div>
+  <!-- DIAGRAM -->
+  <section>
+    <p class="eyebrow" data-n="01">The flow <span></span></p>
+    <h2>Write once, recall forever</h2>
+    <p class="lede">Two lanes run through one core. The <b>write lane</b> turns a chat into a memory; the <b>read lane</b> rebuilds the world from those memories on every load. HydraDB sits in the middle — the only thing that persists.</p>
 
-  <!-- ============ MEMORY SPOTLIGHT ============ -->
-  <h2>The memory layer — the part judges score</h2>
-  <p class="lead">Two requirements, met by one idea: <b style="color:#ddd7ef">nothing lives in the app — everything lives in HydraDB and is recalled.</b></p>
-  <div class="spot">
-    <div class="crit-grid">
-      <div class="crit">
-        <span class="badge">persistent memory logic</span>
+    <div class="stage">
+      <svg viewBox="0 0 960 470" role="img" aria-label="Architecture diagram">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <path d="M2 1.5L8 5L2 8.5" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+
+        <!-- lane labels -->
+        <text class="lane" x="40" y="64">write path</text>
+        <text class="lane" x="40" y="300">read path</text>
+
+        <!-- WRITE lane nodes -->
+        <g>
+          <rect class="nbox" x="40" y="78" width="156" height="60" rx="13"/>
+          <text class="nt" x="118" y="103" text-anchor="middle">Conversation</text>
+          <text class="ns" x="118" y="121" text-anchor="middle">a chat log</text>
+
+          <rect class="nbox" x="228" y="78" width="156" height="60" rx="13"/>
+          <text class="nt" x="306" y="103" text-anchor="middle">Adapter · API</text>
+          <text class="ns" x="306" y="121" text-anchor="middle">normalize</text>
+
+          <rect class="nbox" x="416" y="78" width="166" height="60" rx="13"/>
+          <text class="nt" x="499" y="103" text-anchor="middle">Brain · LLM</text>
+          <text class="ns" x="499" y="121" text-anchor="middle">detect pattern</text>
+        </g>
+        <!-- write edges -->
+        <g fill="none" stroke="var(--line2)" stroke-width="1.6">
+          <path d="M196 108 H224" marker-end="url(#ar)"/>
+          <path d="M384 108 H412" marker-end="url(#ar)"/>
+        </g>
+        <path d="M582 108 H636 Q652 108 652 124 V150" fill="none" stroke="var(--gold)" stroke-width="1.8" marker-end="url(#ar)"/>
+        <text class="el" x="600" y="98" fill="var(--gold)">write</text>
+
+        <!-- MEMORY CORE -->
+        <g>
+          <rect x="636" y="150" width="284" height="170" rx="18" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="1.5"/>
+          <text x="660" y="184" font="600 19px var(--sans)" fill="var(--gold)" style="font:600 19px var(--sans)">HydraDB</text>
+          <text class="ns" x="660" y="203" fill="#d8c79a">the memory of record</text>
+          <g style="font:500 12.5px var(--sans)" fill="var(--ink)">
+            <rect x="660" y="220" width="236" height="28" rx="8" fill="rgba(167,139,250,.14)" stroke="rgba(167,139,250,.4)"/>
+            <text x="674" y="238">🟣 coins — detected patterns</text>
+            <rect x="660" y="254" width="236" height="28" rx="8" fill="rgba(96,165,250,.12)" stroke="rgba(96,165,250,.38)"/>
+            <text x="674" y="272">👤 profiles — who they are</text>
+            <rect x="660" y="288" width="236" height="28" rx="8" fill="rgba(52,211,153,.12)" stroke="rgba(52,211,153,.38)"/>
+            <text x="674" y="306">✓ repairs — what worked</text>
+          </g>
+        </g>
+
+        <!-- recall edge -->
+        <path d="M652 320 V346 Q652 362 636 362 H582" fill="none" stroke="var(--teal)" stroke-width="1.8" marker-end="url(#ar)"/>
+        <text class="el" x="600" y="356" fill="var(--teal)">recall</text>
+
+        <!-- READ lane nodes -->
+        <g>
+          <rect class="nbox" x="416" y="332" width="166" height="60" rx="13"/>
+          <text class="nt" x="499" y="357" text-anchor="middle">Scorekeeper</text>
+          <text class="ns" x="499" y="375" text-anchor="middle">derive state</text>
+
+          <rect class="nbox" x="228" y="332" width="156" height="60" rx="13"/>
+          <text class="nt" x="306" y="357" text-anchor="middle">API</text>
+          <text class="ns" x="306" y="375" text-anchor="middle">/dashboard</text>
+
+          <rect class="nbox" x="40" y="332" width="156" height="60" rx="13"/>
+          <text class="nt" x="118" y="357" text-anchor="middle">Dashboard</text>
+          <text class="ns" x="118" y="375" text-anchor="middle">the game world</text>
+        </g>
+        <!-- read edges (leftward) -->
+        <g fill="none" stroke="var(--line2)" stroke-width="1.6">
+          <path d="M416 362 H388" marker-end="url(#ar)"/>
+          <path d="M228 362 H200" marker-end="url(#ar)"/>
+        </g>
+
+        <!-- feedback loop -->
+        <path d="M118 332 V250 Q118 226 142 226 H300" fill="none" stroke="var(--line2)" stroke-width="1.5"
+              stroke-dasharray="5 5" marker-end="url(#ar)"/>
+        <text class="el" x="150" y="218" fill="var(--mut)">repair → new memory</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- MEMORY SPOTLIGHT -->
+  <section>
+    <p class="eyebrow" data-n="02">The memory layer <span></span></p>
+    <h2>The two things the judges score</h2>
+    <p class="lede">Both requirements fall out of one decision: <b>nothing lives in the app — everything lives in HydraDB and is recalled.</b></p>
+
+    <div class="spot">
+      <div class="panel">
+        <span class="tag">persistent memory logic</span>
         <h3>It recalls past sessions on its own</h3>
-        <p>Every coin, profile, and repair is a memory in HydraDB. The dashboard holds no state — it is rebuilt from a live recall on every load.</p>
-        <ul>
-          <li>Restart the server (a new session) → the whole world reassembles from memory.</li>
-          <li>A relationship you repaired stays repaired, recalled from its resolution memory.</li>
-          <li>The trace panel shows every autonomous <code>WRITE</code> / <code>QUERY</code> as it happens.</li>
+        <p>Every coin, profile, and repair is a memory. The dashboard stores no state — it is rebuilt from a live recall each load.</p>
+        <ul class="clean">
+          <li>Restart the server, a new session, and the world reassembles from memory.</li>
+          <li>A repaired relationship stays repaired, recalled from its resolution memory.</li>
+          <li>The trace panel logs every autonomous <code>write</code> / <code>query</code>.</li>
         </ul>
       </div>
-      <div class="crit">
-        <span class="badge">context-aware execution</span>
+      <div class="panel">
+        <span class="tag">context-aware execution</span>
         <h3>Its advice changes with what it remembers</h3>
-        <p>Before suggesting a fix it recalls <i>who</i> the person is and <i>what worked last time</i>, then tailors the message.</p>
-        <div class="ba">
-          <div class="col no"><span class="k">no memory</span>"Send a follow-up."</div>
-          <div class="col yes"><span class="k">with recalled memory</span>"Send a short honest line — long excuses don't land with Marc, and short honesty worked last time."</div>
+        <p>Before suggesting a fix it recalls who the person is and what worked last time, then tailors the message.</p>
+        <div class="cmp">
+          <div class="a"><span class="lab">no memory</span>"Send a follow-up."</div>
+          <div class="b"><span class="lab">with recalled memory</span>"Send a short honest line — long excuses don't land with Marc, and that worked last time."</div>
         </div>
-        <ul>
+        <ul class="clean">
           <li>Marc → short honesty · Sarah → a concrete date. Same app, different advice.</li>
-          <li>Repair outcomes are stored as rules and recalled into future suggestions.</li>
         </ul>
       </div>
     </div>
-    <div class="loop"><b>write</b> a pattern → <b>persist</b> in HydraDB → <b>recall</b> next session → <b>adapt</b> the recommendation → <b>write</b> the outcome → repeat</div>
-  </div>
-
-  <!-- ============ LAYERS ============ -->
-  <h2>The layers, top to bottom</h2>
-  <p class="lead">A small office. Only the <b style="color:#ddd7ef">brain</b> talks to the AI, and only the <b style="color:#ddd7ef">clerk</b> talks to HydraDB. Clean doors.</p>
-  <div class="layers">
-
-    <div class="layer" style="--ac:#94a3b8">
-      <div><div class="lname">Sources &amp; adapters</div><span class="tag">seed.py · (future parsers)</span></div>
-      <div class="role"><b>The front-ends.</b> Turn any chat (seeded today; WhatsApp / iMessage / paste tomorrow) into one normalized shape: <code>{sender, day, text}</code>.</div>
+    <div class="cycle">
+      <b>write</b><span class="arr">→</span><b>persist</b><span class="arr">→</span><b>recall</b><span class="arr">→</span><b>adapt</b><span class="arr">→</span><b>write</b><span class="arr">↺</span>
     </div>
+  </section>
 
-    <div class="layer" style="--ac:var(--blue)">
-      <div><div class="lname">Front desk · API</div><span class="tag">main.py (FastAPI)</span></div>
-      <div class="role"><b>The counter.</b> The endpoints the frontend calls: <code>/ingest</code> <code>/dashboard</code> <code>/coin</code> <code>/repair</code> <code>/trace</code>.</div>
+  <!-- COMPONENTS -->
+  <section>
+    <p class="eyebrow" data-n="03">The components <span></span></p>
+    <h2>Six roles, two doors</h2>
+    <p class="lede">Only the <b>brain</b> talks to the AI; only the <b>clerk</b> talks to HydraDB. Everything else is normalize and math.</p>
+    <div class="grid">
+      <div class="comp" style="--ac:var(--slate)"><div class="file">seed.py · adapters.py</div><div class="nm">Sources</div><div class="ds">Any chat → one normalized shape. Seed today; WhatsApp / paste next.</div></div>
+      <div class="comp" style="--ac:var(--blue)"><div class="file">main.py</div><div class="nm">Front desk · API</div><div class="ds">The endpoints the frontend calls.</div></div>
+      <div class="comp" style="--ac:var(--teal)"><div class="file">agent.py → Nebius</div><div class="nm">The brain</div><div class="ds">Detects patterns, writes the personalized repair. Safe fallback built in.</div></div>
+      <div class="comp" style="--ac:var(--purple)"><div class="file">hydra.py</div><div class="nm">The memory clerk</div><div class="ds">The only door to HydraDB. Logs every read and write.</div></div>
+      <div class="comp" style="--ac:var(--gold)"><div class="file">HydraDB</div><div class="nm">The notebook</div><div class="ds">Coins, profiles, repairs. The only thing that persists.</div></div>
+      <div class="comp" style="--ac:var(--green)"><div class="file">patterns.py</div><div class="nm">The scorekeeper</div><div class="ds">Pure math: health % and Goblin size. No AI, fully deterministic.</div></div>
     </div>
+  </section>
 
-    <div class="layer" style="--ac:var(--teal)">
-      <div><div class="lname">The brain</div><span class="tag">agent.py → Nebius LLM</span></div>
-      <div class="role"><b>Interprets language.</b> Finds the dark pattern in a chat, and writes the personalized repair message. Falls back to a safe answer key if the model misbehaves.</div>
+  <!-- STORY -->
+  <section>
+    <p class="eyebrow" data-n="04">The story, mapped <span></span></p>
+    <h2>Every scene is a write or a read</h2>
+    <div class="rail">
+      <div class="step"><div class="top"><span class="sn">1 · Open the app</span><span class="pill w">write</span></div><div class="x">Reads 4 chats; coins drop for Marc, Sarah, Tom; Nina stays healthy.</div></div>
+      <div class="step"><div class="top"><span class="sn">2 · Open the bag</span><span class="pill r">read</span></div><div class="x">The bag list is a live recall of unresolved memories.</div></div>
+      <div class="step"><div class="top"><span class="sn">3 · Click a coin</span><span class="pill r">read</span></div><div class="x">Recalls Marc's profile, writes a fix in his tone.</div></div>
+      <div class="step"><div class="top"><span class="sn">4 · Fix it</span><span class="pill w">write</span></div><div class="x">Writes a resolution memory; Goblin shrinks, Marc heals.</div></div>
+      <div class="step"><div class="top"><span class="sn">5 · Reopen later</span><span class="pill r">read</span></div><div class="x">A blank app rebuilds from HydraDB. Marc stays fixed. The proof.</div></div>
+      <div class="step"><div class="top"><span class="sn">6 · Prediction</span><span class="pill r">read</span></div><div class="x">Warns Sarah's promise is about to break again.</div></div>
     </div>
-
-    <div class="layer" style="--ac:var(--purple)">
-      <div><div class="lname">The memory clerk</div><span class="tag">hydra.py</span></div>
-      <div class="role"><b>The only door to HydraDB.</b> Writes notes, reads notes, and logs every single read/write to the trace panel.</div>
+    <div class="legend">
+      <span><i style="background:var(--purple)"></i>ghosting</span>
+      <span><i style="background:var(--yellow)"></i>broken promise</span>
+      <span><i style="background:var(--red)"></i>bad excuse</span>
+      <span><i style="background:var(--blue)"></i>transactional</span>
     </div>
+  </section>
 
-    <div class="layer" style="--ac:var(--gold)">
-      <div><div class="lname">HydraDB — the notebook</div><span class="tag">memories: coins · profiles · repairs</span></div>
-      <div class="role"><b>The memory of record.</b> Everything that persists lives here. Survives restarts — this is what makes it remember across sessions.</div>
-    </div>
-
-    <div class="layer" style="--ac:var(--green)">
-      <div><div class="lname">The scorekeeper</div><span class="tag">patterns.py</span></div>
-      <div class="role"><b>Pure math, no AI.</b> Turns "how many open coins" into a health % and a Goblin size. Deterministic, so the demo is fast and repeatable.</div>
-    </div>
-
-  </div>
-
-  <!-- ============ WRITE / READ PATHS ============ -->
-  <h2>Two paths through the stack</h2>
-  <p class="lead">Writing a memory and reading it back are the only two things that ever happen. Everything in the game is one of these.</p>
-  <div class="paths">
-    <div class="path">
-      <h3><span class="dot" style="background:var(--gold)"></span> Write path — making a memory</h3>
-      <div class="chain">
-        <div class="node"><b>Conversation</b><small>Marc: "still up for coffee?" · you: (silence, 17 days)</small></div>
-        <div class="node"><b>Adapter → API</b><small>normalize to {sender, day, text}</small></div>
-        <div class="node"><b>Brain detects</b><small>"ghosting, 17 days, high severity"</small></div>
-        <div class="node mem"><b>Clerk writes to HydraDB</b><small>memory <code>marc::ghosting</code> · trace: WRITE</small></div>
-      </div>
-    </div>
-    <div class="path">
-      <h3><span class="dot" style="background:var(--teal)"></span> Read path — drawing the world</h3>
-      <div class="chain">
-        <div class="node mem"><b>Clerk recalls from HydraDB</b><small>"all the user's notes" · trace: QUERY</small></div>
-        <div class="node"><b>Scorekeeper derives</b><small>Marc 66 → "neglected" · Goblin = 3 coins</small></div>
-        <div class="node"><b>Brain (on click)</b><small>recall Marc's profile → personalized fix</small></div>
-        <div class="node"><b>API → dashboard</b><small>the world, rebuilt from memory every load</small></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ STORY ============ -->
-  <h2>How it maps to the story you saw</h2>
-  <div class="story">
-    <div class="sc"><div class="h"><span class="sn">1 · Open the app</span><span class="job write">ingest · detect · store</span></div><div class="x">Reads 4 chats, drops Marc / Sarah / Tom coins, Nina stays healthy.</div></div>
-    <div class="sc"><div class="h"><span class="sn">2 · Open the bag</span><span class="job read">derive</span></div><div class="x">The bag list is a live recall of unresolved memories.</div></div>
-    <div class="sc"><div class="h"><span class="sn">3 · Click a coin</span><span class="job read">recall + brain</span></div><div class="x">Pulls Marc's profile, writes a fix in <i>his</i> tone.</div></div>
-    <div class="sc"><div class="h"><span class="sn">4 · Fix it</span><span class="job write">repair</span></div><div class="x">Writes a resolution memory; Goblin shrinks, Marc heals.</div></div>
-    <div class="sc"><div class="h"><span class="sn">5 · Reopen later</span><span class="job read">derive</span></div><div class="x">Blank app rebuilds from HydraDB. Marc stays fixed. The proof.</div></div>
-    <div class="sc"><div class="h"><span class="sn">6 · Prediction</span><span class="job read">derive</span></div><div class="x">Warns Sarah's promise is about to break again.</div></div>
-    <div class="sc"><div class="h"><span class="sn">7 · Trace panel</span><span class="job read">all of it</span></div><div class="x">Every WRITE / QUERY line is a real HydraDB call.</div></div>
-    <div class="sc"><div class="h"><span class="sn">Legend</span><span class="job">coins</span></div>
-      <div class="legend">
-        <span class="coin"><span class="c" style="background:var(--purple)"></span>ghosting</span>
-        <span class="coin"><span class="c" style="background:var(--yellow)"></span>broken promise</span>
-        <span class="coin"><span class="c" style="background:var(--red)"></span>bad excuse</span>
-        <span class="coin"><span class="c" style="background:var(--blue)"></span>transactional</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ SOURCES ============ -->
-  <h2>Going further — ingesting real sources</h2>
-  <p class="lead">Adapters are interchangeable front-ends. Add a parser per source; the brain and memory underneath never change.</p>
-  <div class="sources">
+  <!-- SOURCES -->
+  <section>
+    <p class="eyebrow" data-n="05">Scaling sources <span></span></p>
+    <h2>Adapters are interchangeable</h2>
+    <p class="lede">Add a parser per source; the brain and the memory underneath never change.</p>
     <div class="funnel">
-      <div class="chips">
-        <div class="chip live"><span class="b">Seed chats</span> — live today</div>
-        <div class="chip"><span class="b">WhatsApp</span> — "export chat" .txt parser</div>
-        <div class="chip"><span class="b">iMessage / Slack</span> — one parser each</div>
-        <div class="chip"><span class="b">Paste any chat</span> — LLM normalizes it</div>
+      <div class="src">
+        <div class="chip on"><b>Seed chats</b> — live today</div>
+        <div class="chip"><b>WhatsApp</b> — export .txt parser</div>
+        <div class="chip"><b>iMessage / Slack</b> — one parser each</div>
+        <div class="chip"><b>Paste anything</b> — LLM normalizes it</div>
       </div>
-      <div class="arrowto">⟶</div>
+      <div class="into">⟶</div>
       <div class="norm">
-        <div class="b">Normalized shape</div>
+        <div class="b">One normalized shape</div>
         <code>{ contact, messages:[{sender, day, text}] }</code>
-        <div style="color:var(--muted); font-size:13px; margin-top:8px">…then the same detect → store → derive pipeline runs, untouched.</div>
+        <small>…then the same detect → store → derive pipeline runs, untouched.</small>
       </div>
     </div>
-  </div>
+  </section>
 
-  <p class="foot">Your Social Goblin · "Agents you Love" hackathon · HydraDB memory + Nebius agent.
-  The backend produces health, coins, suggestions, predictions, and the memory that survives restarts; the frontend animates on top of that data.</p>
+  <p class="foot">your social goblin · agents you love hackathon · hydradb memory + nebius agent</p>
 
 </div>
 </body>
