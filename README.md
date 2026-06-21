@@ -19,7 +19,7 @@ credits, OpenAI-compatible); Anthropic Claude is the drop-in alternative.
 
 ---
 
-## How memory works (the part judges score)
+## How memory works 
 
 - **Every coin = one memory written to HydraDB.** Nothing about the dashboard is
   stored as app state. Tamagotchi health, the Goblin's size, and warnings are all
