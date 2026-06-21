@@ -4,6 +4,15 @@ A scene-by-scene script for the presentation. Each scene has a one-line beat and
 ready-to-paste **image prompt**. Prepend the **style block** to every prompt so all
 the generated images look like one coherent set.
 
+> **This whole story is really about one thing: memory.** The two judging criteria
+> run through the scenes:
+> - **Persistent memory (autonomous recall across sessions)** — Scenes 1 & 5: the
+>   world is written to HydraDB, then a *fresh* session rebuilds it entirely from
+>   recall. Fixed things stay fixed.
+> - **Context-aware execution (memory changes the action)** — Scenes 3 & 5b: the
+>   repair it suggests depends on *who* it remembers the person being and *what
+>   worked before*. Same app, different advice per person and per history.
+
 ---
 
 ## 🎨 Style block (prepend to every prompt)
@@ -82,6 +91,10 @@ remembers about him.
 coin, a tiny "17 days" hourglass, and a glowing speech bubble with a short friendly
 message forming. The card feels like a gentle coaching tooltip, not a scold.
 
+**✓ Proves — context-aware execution:** the message is short and honest *because*
+memory says Marc dislikes long excuses. For Sarah, the same app suggests a concrete
+date instead. The recommendation is shaped by recalled history, not a fixed template.
+
 ---
 
 ## Scene 4 — You fix it
@@ -102,6 +115,25 @@ stay fixed; unfixed things still rot.
 **Image prompt:** A dark screen powering back on, and the creature world reassembling
 itself from glowing coins flowing out of a central "notebook/database" crystal. Marc is
 still healthy; Sarah and Tom still have their coins. A sense of memory restoring a world.
+
+**✓ Proves — persistent memory:** nothing was saved as app state; the entire world is
+recalled from HydraDB on load. Marc stays fixed because his resolution memory persists
+across the session boundary.
+
+---
+
+## Scene 5b — It remembers what worked (the learned loop)
+
+**Beat:** Weeks later Marc slips again. Before advising, the app recalls "short honesty
+worked with Marc last time" and leans on it — citing the past outcome, not a guess.
+
+**Image prompt:** Grey Marc again with a faint purple coin, and a glowing thread linking
+him back to a small lit-up "memory" icon. A speech bubble forms that references the past
+("last time, keeping it short worked"). The feeling: the app learning from its own history.
+
+**✓ Proves — context-aware execution across sessions:** the recommendation is shaped by
+a stored *outcome* from a previous session, recalled autonomously. This is the live
+`learned_from_past` field in the `/coin` response.
 
 ---
 

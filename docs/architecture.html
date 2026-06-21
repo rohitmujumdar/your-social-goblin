@@ -105,6 +105,27 @@
         background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:6px 12px 6px 8px}
   .coin .c{width:14px; height:14px; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.04)}
 
+  /* memory spotlight */
+  .spot{border:1px solid rgba(241,196,83,.45);
+        background:linear-gradient(180deg,rgba(241,196,83,.08),rgba(241,196,83,.02));
+        border-radius:var(--radius); padding:20px}
+  .crit-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .crit{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px}
+  .crit .badge{display:inline-block; font-size:10.5px; font-family:var(--mono); letter-spacing:.08em;
+       text-transform:uppercase; color:#ffd98a; background:rgba(241,196,83,.1);
+       border:1px solid rgba(241,196,83,.4); border-radius:20px; padding:3px 10px; margin-bottom:10px}
+  .crit h3{margin:0 0 8px; font-size:16px; font-weight:600}
+  .crit p{margin:0 0 10px; font-size:13.5px; color:#c9c3dc}
+  .crit ul{margin:0; padding-left:18px; color:var(--muted); font-size:13px}
+  .crit li{margin:5px 0}
+  .ba{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0}
+  .ba .col{border-radius:10px; padding:10px 12px; font-size:12.5px}
+  .ba .no{background:rgba(248,113,113,.08); border:1px solid rgba(248,113,113,.3); color:#f4b8b8}
+  .ba .yes{background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.35); color:#bff3df}
+  .ba .k{display:block; font-family:var(--mono); font-size:10px; opacity:.7; margin-bottom:3px}
+  .loop{margin-top:16px; color:var(--muted); font-size:13.5px; text-align:center}
+  .loop b{color:var(--gold); font-weight:600}
+  @media(max-width:720px){.crit-grid,.ba{grid-template-columns:1fr}}
   .foot{margin-top:50px; color:var(--muted); font-size:13px; border-top:1px solid var(--line); padding-top:16px}
   @media(max-width:720px){
     .paths,.story,.funnel{grid-template-columns:1fr}
@@ -129,6 +150,38 @@
     <div class="step"><div class="n">03</div><div class="t">Store</div><div class="d">Write it as a memory</div><div class="who">hydra.py → HydraDB</div></div>
     <div class="step"><div class="n">04</div><div class="t">Derive</div><div class="d">Read memory, draw world</div><div class="who">hydra.py + patterns.py</div></div>
     <div class="step"><div class="n">05</div><div class="t">Repair</div><div class="d">Write a "fixed it" memory</div><div class="who">hydra.py → HydraDB</div></div>
+  </div>
+
+  <!-- ============ MEMORY SPOTLIGHT ============ -->
+  <h2>The memory layer — the part judges score</h2>
+  <p class="lead">Two requirements, met by one idea: <b style="color:#ddd7ef">nothing lives in the app — everything lives in HydraDB and is recalled.</b></p>
+  <div class="spot">
+    <div class="crit-grid">
+      <div class="crit">
+        <span class="badge">persistent memory logic</span>
+        <h3>It recalls past sessions on its own</h3>
+        <p>Every coin, profile, and repair is a memory in HydraDB. The dashboard holds no state — it is rebuilt from a live recall on every load.</p>
+        <ul>
+          <li>Restart the server (a new session) → the whole world reassembles from memory.</li>
+          <li>A relationship you repaired stays repaired, recalled from its resolution memory.</li>
+          <li>The trace panel shows every autonomous <code>WRITE</code> / <code>QUERY</code> as it happens.</li>
+        </ul>
+      </div>
+      <div class="crit">
+        <span class="badge">context-aware execution</span>
+        <h3>Its advice changes with what it remembers</h3>
+        <p>Before suggesting a fix it recalls <i>who</i> the person is and <i>what worked last time</i>, then tailors the message.</p>
+        <div class="ba">
+          <div class="col no"><span class="k">no memory</span>"Send a follow-up."</div>
+          <div class="col yes"><span class="k">with recalled memory</span>"Send a short honest line — long excuses don't land with Marc, and short honesty worked last time."</div>
+        </div>
+        <ul>
+          <li>Marc → short honesty · Sarah → a concrete date. Same app, different advice.</li>
+          <li>Repair outcomes are stored as rules and recalled into future suggestions.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="loop"><b>write</b> a pattern → <b>persist</b> in HydraDB → <b>recall</b> next session → <b>adapt</b> the recommendation → <b>write</b> the outcome → repeat</div>
   </div>
 
   <!-- ============ LAYERS ============ -->

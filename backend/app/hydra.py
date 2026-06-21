@@ -29,10 +29,19 @@ except Exception:  # SDK not installed yet -> offline mode still works
 TRACE = []                 # list[{"ts","op","detail","mode"}]
 MIRROR = {}                # source_id -> coin dict (cache)
 PROFILES = {}              # contact -> profile text (cache)
+LEARNED = {}               # contact -> [learned rules from past repairs] (cache)
 
 
 def _now_iso():
     return datetime.datetime.now().strftime("%H:%M:%S")
+
+
+def _remember_rule(contact, rule):
+    """Cache a 'what worked' rule learned from a past repair, for future recall."""
+    if contact and rule:
+        LEARNED.setdefault(contact, [])
+        if rule not in LEARNED[contact]:
+            LEARNED[contact].append(rule)
 
 
 def log(op, detail, mode):
@@ -77,6 +86,7 @@ class Hydra:
             target = metadata.get("resolves")
             if target and target in MIRROR:
                 MIRROR[target]["status"] = "resolved"
+            _remember_rule(metadata.get("contact"), metadata.get("learned_rule") or text)
         elif kind == "profile":
             PROFILES[metadata.get("contact")] = text
 
@@ -134,6 +144,8 @@ class Hydra:
                             tgt = sid[: -len("::repair")]
                         if tgt:
                             resolved.add(tgt)
+                        # and it teaches us what worked, for future recommendations
+                        _remember_rule(md.get("contact"), md.get("learned_rule") or m.get("text", ""))
                 for tgt in resolved:
                     if tgt in MIRROR:
                         MIRROR[tgt]["status"] = "resolved"
@@ -143,11 +155,15 @@ class Hydra:
         return list(MIRROR.values())
 
     def recall_text(self, query, max_results=10):
-        """Like recall but returns raw text snippets for feeding to Claude."""
+        """Like recall but returns raw text snippets for feeding to the LLM."""
         coins = self.recall(query, max_results)
         snippets = [c.get("text", "") for c in coins]
         snippets += [v for v in PROFILES.values()]
         return [s for s in snippets if s]
+
+    def learned_for(self, contact):
+        """Rules learned from past repairs with this contact (recall() populates this)."""
+        return list(LEARNED.get(contact, []))
 
     def list_memory_ids(self):
         if not self.online:
@@ -166,6 +182,7 @@ class Hydra:
         Lets you re-run the full demo (incl. the live repair) from scratch."""
         MIRROR.clear()
         PROFILES.clear()
+        LEARNED.clear()
         n = 0
         for mid in self.list_memory_ids():
             try:

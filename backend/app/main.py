@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import config, agent, adapters
-from .hydra import db, TRACE, MIRROR, PROFILES
+from .hydra import db, TRACE, MIRROR, PROFILES, LEARNED
 from .patterns import tamagotchi_state, goblin_stage, decorate_coin
 from .seed import SEED, contact_names
 
@@ -163,12 +163,14 @@ def coin_inspector(id: str):
 
     contact = coin.get("contact", "")
     snippets = db.recall_text(f"history, tone and past repairs with {contact}", max_results=10)
-    s = agent.suggest_repair(coin, contact, snippets)
+    learned = db.learned_for(contact)               # what worked in PAST repairs
+    s = agent.suggest_repair(coin, contact, learned + snippets)
 
     return {
         "coin": decorate_coin(dict(coin)),
         "evidence": coin.get("evidence", []),
-        "retrieved_memory": snippets,           # show this in UI = proof recall changed the answer
+        "retrieved_memory": snippets,           # show this in UI = proof recall shaped the answer
+        "learned_from_past": learned,           # past-repair rules that altered this recommendation
         "prediction": s.get("prediction"),
         "smallest_action": s.get("smallest_action"),
         "suggested_message": s.get("suggested_message"),
@@ -224,5 +226,6 @@ def reset(hard: bool = False):
     deleted = db.purge() if hard else None
     MIRROR.clear()
     PROFILES.clear()
+    LEARNED.clear()
     TRACE.clear()
     return {"ok": True, "hard": hard, "deleted_from_hydradb": deleted}

@@ -246,6 +246,7 @@ Coin colors: `purple` ghosting, `yellow` broken_promise, `red` bad_excuse, `blue
 { "coin": { "...": "decorated coin" },
   "evidence": ["Marc sent the last message 17 days ago","..."],
   "retrieved_memory": ["Ghosting with Marc: 17 days...","Marc: friend. Prefers short honest..."],
+  "learned_from_past": ["a brief honest acknowledgement works with Marc"],
   "prediction": "In a few more days this turns into an apology.",
   "smallest_action": "Send one honest acknowledgement, no excuse.",
   "suggested_message": "Hey Marc — I went quiet on this, sorry. Still up for it this week?",
