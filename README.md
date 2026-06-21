@@ -19,6 +19,140 @@ credits, OpenAI-compatible); Anthropic Claude is the drop-in alternative.
 
 ---
 
+## How the game works (a walkthrough)
+
+You have relationships. Some you keep up with, some you let rot. The game turns
+that invisible thing into a small world with three kinds of objects:
+
+- **Tamagotchis** = your people. Each contact is a creature whose health = the
+  health of that relationship.
+- **Coins** = your bad habits. Treat someone badly (ghost them, break a promise)
+  and a colored coin pops out of that person.
+- **The Goblin** = the weight of everything you haven't fixed. He scoops the
+  coins into his bag and grows fatter and darker the more you avoid.
+
+The hook: you're not fighting the Goblin. He eats whatever you refuse to repair.
+Your job is to stop feeding him.
+
+### Scene 1 — You open the app
+
+The app reads your recent conversations, studies each one ("is this person being
+treated well or badly?"), and draws the world:
+
+- **Marc** looks *neglected* (health **66**). You said "we should grab coffee," he
+  replied twice asking when, and you went silent for **17 days**. A **purple coin**
+  (purple = ghosting) dropped from him.
+- **Sarah** looks *hungry* (**78**). You promised her a deck "by Friday," later said
+  "sending tomorrow," and never delivered — a **yellow coin** (broken promise).
+- **Tom** also *hungry* (**78**), but his issue is different: every message you send
+  him is an ask. A **blue coin** (transactional).
+- **Nina** is bright and *healthy* (**100**). Your chat is balanced and you both
+  follow through. No coin — proof the app can tell when you're doing fine.
+
+Off to the side, the **Goblin** holds **3 coins** (Marc, Sarah, Tom — not Nina),
+which puts him at stage 2, the **"Greedy Goblin."** Let coins pile to 7+ and he
+becomes a "Pattern Hoarder," past 12 a "Dark Goblin."
+
+### Scene 2 — You click the Goblin's bag
+
+His bag opens to a list of everything you're avoiding:
+
+```
+🟣 Ghosting        — Marc
+🟡 Broken Promise  — Sarah
+🔵 Transactional   — Tom
+```
+
+This list isn't hardcoded. Opening the bag asks HydraDB "what unresolved stuff do
+you remember for this user?" and shows the notes that come back. The bag is a
+window into the agent's memory.
+
+### Scene 3 — You click Marc's purple coin
+
+```
+🟣 Ghosting — Marc
+
+What happened:
+You went silent on Marc for 17 days after he asked twice to meet.
+
+Evidence:
+• Marc sent the last two messages
+• No reply from you in 17 days
+
+Prediction:
+Still fixable today. Wait longer and a casual reply becomes an awkward apology.
+
+Smallest useful action:
+Send one honest line. No long excuse.
+
+Suggested message:
+"Hey Marc, sorry I've been MIA, been busy but that's no excuse for not
+responding. Will catch up soon."
+```
+
+The suggested message is **personalized from memory**: before writing it, the app
+pulls its note on who Marc is ("prefers short, casual, honest; responds badly to
+long excuses"). For Sarah, who "responds to action not words," the same app would
+instead push you to give a concrete delivery date. Same app, different advice,
+because it remembers different people differently.
+
+### Scene 4 — You fix it
+
+You send the message (or mark it done). Instantly: Marc's coin disappears from the
+bag, the Goblin shrinks from "Greedy Goblin" (3 coins) to "Little Imp" (2 left),
+and Marc heals from 66 back to 100. Underneath, the app writes a new memory: "user
+repaired the Marc ghosting — resolved."
+
+### Scene 5 — You close the app and come back
+
+Reopen later (or restart the server) and the app starts blank — it remembers
+nothing in its own head. So it asks HydraDB "what do you remember about this
+user?" and rebuilds the world from the notes that return:
+
+- Sarah and Tom still hungry with their coins (never fixed).
+- Marc still healthy — his repair note is in memory, so the app won't re-flag him.
+- Nina still glowing.
+
+Nothing was saved as a score or screenshot. It is rebuilt from memory every time.
+
+### Scene 6 — The prediction twist (Sarah)
+
+The app also warns before a habit repeats:
+
+```
+⚠️ You're likely to break your promise to Sarah again.
+Reason: a deck you promised is still open and aging, and you've re-promised once.
+```
+
+Visually that's a coin glowing above Sarah before it fully drops, and the Goblin
+drifting toward her.
+
+### Scene 7 — The proof panel
+
+A terminal log scrolls every real read/write to HydraDB as it happens:
+
+```
+WRITE  coin: marc::ghosting
+WRITE  coin: sarah::broken_promise
+QUERY  open relationship dark patterns for the user
+WRITE  repair: marc::ghosting::repair
+QUERY  history and tone for Marc
+```
+
+### The whole game in five sentences
+
+1. The app reads your conversations and turns each bad habit into a **coin** (a memory in HydraDB).
+2. Your **people** look healthy or sick by how many coins they have, and the **Goblin** grows with the total you've left unfixed.
+3. Click a coin and it explains the habit and suggests a fix **personalized to that person**, using what it remembers about them.
+4. **Fix it** and the coin vanishes, the person heals, the Goblin shrinks, and the app records the fix.
+5. **Come back later** and the world rebuilds from memory — fixed things stay fixed, unfixed things still rot, and it can **predict** the next slip before it happens.
+
+> Scope note: the backend produces the health scores, coins, personalized
+> suggestions, predictions, and the memory that survives restarts. The animations
+> (the Goblin walking, coins dropping) are the frontend painting on top of that data.
+
+---
+
 ## How memory works 
 
 - **Every coin = one memory written to HydraDB.** Nothing about the dashboard is
