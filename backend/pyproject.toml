@@ -1,0 +1,16 @@
+[project]
+name = "the-goblin-backend"
+version = "0.1.0"
+description = "The Goblin - relationship-maintenance agent backend (HydraDB memory + Claude)"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "openai>=1.40",
+    "anthropic>=0.40",
+    "hydra-db-python>=0.1",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv]
+# nothing special; `uv sync` then `uv run uvicorn app.main:app --reload`
