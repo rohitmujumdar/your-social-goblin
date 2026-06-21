@@ -1,4 +1,4 @@
-# The Social Goblin 🪙👹
+# Your Social Goblin 🪙👹
 
 A relationship-maintenance mini-game. Each contact is a Tamagotchi whose health
 reflects the relationship. Detected "dark patterns" (ghosting, broken promises,
