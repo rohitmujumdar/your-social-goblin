@@ -15,7 +15,7 @@ credits, OpenAI-compatible); Anthropic Claude is the drop-in alternative.
 walkthrough — open in a browser) · [`docs/story.md`](docs/story.md) (scene-by-scene
 story + image prompts for slides).
 
-## The pitch in one line
+Project Video : https://gyazo.com/08a7ec1711f56f748de1dc8565afb8c8
 
 > The Goblin feeds on the parts of your relationships you refuse to repair.
 > Every coin is a memory in HydraDB; close the tab and reopen — it remembers,
