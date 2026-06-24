@@ -157,11 +157,6 @@ Hacker-cozy, CRT glow, but clean and readable.
 
 ---
 
-## The pitch line (closing slide)
-
 > The Goblin feeds on the parts of your relationships you refuse to repair.
 > Your job isn't to kill him — it's to understand what he's eating, and stop feeding him.
 
-**Image prompt:** The goblin sitting contentedly small and almost asleep beside four
-healthy glowing creatures, his bag nearly empty. Peaceful, warm, resolved — the
-"good ending." Soft gold dawn light over the dark violet world.
